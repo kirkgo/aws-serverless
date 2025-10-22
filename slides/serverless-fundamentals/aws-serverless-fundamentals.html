@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Serverless</title>
+    <style>
+        :root {
+            --primary: #FF9900;
+            --secondary: #232F3E;
+            --accent: #146EB4;
+            --dark: #1a1a1a;
+            --light: #f6f8fa;
+            --text: #24292f;
+            --gradient-primary: linear-gradient(135deg, #FF9900 0%, #FF7700 100%);
+            --gradient-accent: linear-gradient(135deg, #146EB4 0%, #0D5A94 100%);
+            --shadow-light: 0 2px 10px rgba(0,0,0,0.1);
+            --shadow-medium: 0 5px 20px rgba(0,0,0,0.15);
+            --shadow-heavy: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #232F3E 0%, #1a1a1a 100%);
+            overflow: hidden;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .presentation-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide {
+            display: none;
+            width: 92%;
+            max-width: 1400px;
+            height: 88vh;
+            background: white;
+            border-radius: 12px;
+            padding: 80px;
+            box-shadow: var(--shadow-heavy);
+            overflow-y: auto;
+            animation: slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide h1 {
+            color: var(--dark);
+            font-size: 2.8em;
+            font-weight: 700;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .slide h2 {
+            color: var(--primary);
+            font-size: 2em;
+            font-weight: 600;
+            margin: 40px 0 25px 0;
+            letter-spacing: -0.3px;
+        }
+
+        .slide h3 {
+            color: var(--dark);
+            font-size: 1.5em;
+            font-weight: 600;
+            margin: 30px 0 20px 0;
+        }
+
+        .slide p, .slide li {
+            font-size: 1.15em;
+            line-height: 1.8;
+            margin: 18px 0;
+            color: var(--text);
+        }
+
+        .slide ul {
+            margin-left: 25px;
+        }
+
+        .slide li {
+            margin: 15px 0;
+            list-style: none;
+            position: relative;
+            padding-left: 35px;
+        }
+
+        .slide li:before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        .highlight {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 15px 0;
+            font-weight: 600;
+            box-shadow: var(--shadow-light);
+        }
+
+        .quote {
+            background: var(--light);
+            border-left: 4px solid var(--primary);
+            padding: 25px 30px;
+            margin: 30px 0;
+            font-style: italic;
+            border-radius: 6px;
+            position: relative;
+            color: var(--text);
+        }
+
+        .quote:before {
+            content: '"';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            font-size: 60px;
+            color: var(--primary);
+            opacity: 0.2;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin: 35px 0;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid #e1e8ed;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .card h4 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .card p {
+            color: var(--text);
+            font-size: 1em;
+            margin: 10px 0;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 50px;
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .btn {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 153, 0, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            background: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: var(--dark);
+            font-weight: 600;
+            box-shadow: var(--shadow-medium);
+            font-size: 0.95em;
+        }
+
+        .diagram {
+            background: var(--light);
+            padding: 40px;
+            border-radius: 8px;
+            margin: 35px 0;
+            text-align: center;
+            border: 1px solid #e1e8ed;
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            margin: 35px 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-item {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 20px 35px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1em;
+            box-shadow: var(--shadow-light);
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 35px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+
+        th {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 18px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px 18px;
+            border-bottom: 1px solid #e1e8ed;
+            background: white;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: var(--light);
+        }
+
+        .emphasis {
+            font-size: 1.4em;
+            color: var(--primary);
+            font-weight: 600;
+            text-align: center;
+            margin: 40px 0;
+            padding: 25px;
+            background: var(--light);
+            border-radius: 8px;
+            border: 2px solid var(--primary);
+        }
+
+        .title-slide {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .title-slide h1 {
+            font-size: 3.5em;
+            margin-bottom: 30px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            border: none;
+            padding: 0;
+        }
+
+        .subtitle {
+            font-size: 1.6em;
+            color: var(--text);
+            margin: 20px 0;
+            font-weight: 300;
+        }
+
+        .author {
+            font-size: 1.2em;
+            color: #666;
+            margin-top: 50px;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1001;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin: 35px 0;
+        }
+
+        .comparison-item {
+            padding: 25px;
+            border-radius: 8px;
+        }
+
+        .before {
+            background: #fee;
+            border: 2px solid #f44336;
+        }
+
+        .after {
+            background: #efe;
+            border: 2px solid #4caf50;
+        }
+
+        .timeline {
+            position: relative;
+            padding: 30px 0;
+            margin: 40px 0;
+        }
+
+        .timeline-item {
+            padding: 20px;
+            margin: 20px 0;
+            background: var(--light);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+        }
+
+        .timeline-year {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1.2em;
+        }
+
+        .keyboard-hint {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .keyboard-hint.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 40px 30px;
+                width: 95%;
+            }
+            .slide h1 {
+                font-size: 2em;
+            }
+            .slide h2 {
+                font-size: 1.5em;
+            }
+            .grid, .comparison {
+                grid-template-columns: 1fr;
+            }
+            .flow {
+                flex-direction: column;
+            }
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        .slide::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .slide::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .slide::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .era-box {
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .era-title {
+            font-size: 1.4em;
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .checkmark {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .crossmark {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="slide-counter" id="slideCounter">1 / 30</div>
+    <div class="keyboard-hint" id="keyboardHint">Use ← → to navigate | F for fullscreen</div>
+    
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="title-slide">
+                <h1>AWS Serverless</h1>
+                <p class="subtitle">Concepts and Fundamentals</p>
+                <p class="author">Kirk Patrick</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Agenda -->
+        <div class="slide">
+            <h1>Agenda</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>📚 Historical Evolution</h4>
+                    <p>• From mainframes to serverless</p>
+                    <p>• Technology revolutions</p>
+                    <p>• Lessons learned</p>
+                </div>
+                <div class="card">
+                    <h4>🎯 Fundamental Concepts</h4>
+                    <p>• What is serverless?</p>
+                    <p>• Event-driven architecture</p>
+                    <p>• Core characteristics</p>
+                </div>
+                <div class="card">
+                    <h4>💡 Benefits & Use Cases</h4>
+                    <p>• Technical advantages</p>
+                    <p>• Business benefits</p>
+                    <p>• Real-world scenarios</p>
+                </div>
+                <div class="card">
+                    <h4>🚀 Best Practices</h4>
+                    <p>• Design patterns</p>
+                    <p>• When to use/not use</p>
+                    <p>• Future trends</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Era 1 - On-Premise -->
+        <div class="slide">
+            <h1>Era 1: On-Premise (1950s-2000s)</h1>
+            <h2>Mainframes (1950s-1980s)</h2>
+            <div class="era-box">
+                <ul>
+                    <li>Giant centralized computers</li>
+                    <li>Prohibitive costs (millions of dollars)</li>
+                    <li>Access via dumb terminals</li>
+                    <li>Examples: IBM System/360, VAX</li>
+                </ul>
+            </div>
+            
+            <h2>Dedicated Physical Servers (1990s-2000s)</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Characteristics</h4>
+                    <p>• Corporate data centers</p>
+                    <p>• Rack-mounted servers</p>
+                    <p>• One application per server</p>
+                </div>
+                <div class="card">
+                    <h4>Challenges</h4>
+                    <p>• Massive upfront investment (CAPEX)</p>
+                    <p>• Long procurement cycles (months)</p>
+                    <p>• 10-15% average utilization</p>
+                    <p>• Constant physical maintenance</p>
+                </div>
+            </div>
+            
+            <div class="emphasis">
+                Example: Buying servers for Black Friday peaks that sat idle 364 days a year
+            </div>
+        </div>
+
+        <!-- Slide 4: Era 2 - Virtualization -->
+        <div class="slide">
+            <h1>Era 2: Virtualization (2000s)</h1>
+            <h2>The Virtual Machine Revolution</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <span class="timeline-year">1999</span>
+                    <p>VMware ESX launched</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2003</span>
+                    <p>Xen hypervisor released</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2008</span>
+                    <p>Microsoft Hyper-V introduced</p>
+                </div>
+            </div>
+            
+            <h2>The Breakthrough</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>✓ Advantages</h4>
+                    <p>• Multiple VMs per physical server</p>
+                    <p>• Application isolation</p>
+                    <p>• Better resource usage (40-60%)</p>
+                    <p>• Faster provisioning (hours vs weeks)</p>
+                    <p>• Snapshots and cloning</p>
+                </div>
+                <div class="card">
+                    <h4>✗ Limitations</h4>
+                    <p>• Still requires OS management</p>
+                    <p>• Hypervisor overhead</p>
+                    <p>• Heavy VMs (GBs in size)</p>
+                    <p>• Boot time in minutes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Era 3 - Cloud Computing -->
+        <div class="slide">
+            <h1>Era 3: Cloud Computing - IaaS (2006-2010)</h1>
+            <div class="quote">
+                "AWS EC2 launched in 2006: The Public Cloud is Born"
+            </div>
+            
+            <h2>Paradigm Shift</h2>
+            <ul>
+                <li><strong>Infrastructure as a Service:</strong> On-demand infrastructure</li>
+                <li><strong>Pay-as-you-go:</strong> OPEX vs CAPEX model</li>
+                <li><strong>Self-service:</strong> APIs and web consoles</li>
+                <li><strong>Elasticity:</strong> Scale up/down on demand</li>
+            </ul>
+            
+            <h2>Major Providers Timeline</h2>
+            <table>
+                <tr>
+                    <th>Year</th>
+                    <th>Provider</th>
+                    <th>Service</th>
+                </tr>
+                <tr>
+                    <td>2006</td>
+                    <td>Amazon</td>
+                    <td>AWS EC2 (Pioneer)</td>
+                </tr>
+                <tr>
+                    <td>2012</td>
+                    <td>Google</td>
+                    <td>Compute Engine</td>
+                </tr>
+                <tr>
+                    <td>2013</td>
+                    <td>Microsoft</td>
+                    <td>Azure VMs</td>
+                </tr>
+            </table>
+            
+            <h3>Remaining Responsibilities:</h3>
+            <p>OS management • Security patches • Capacity monitoring • Auto-scaling configuration • Hourly payment even if underutilized</p>
+        </div>
+
+        <!-- Slide 6: Era 4 - Containers -->
+        <div class="slide">
+            <h1>Era 4: Containers (2013-2015)</h1>
+            <div class="quote">
+                "Docker launched in 2013: The Container Revolution"
+            </div>
+            
+            <h2>What are Containers?</h2>
+            <ul>
+                <li>Application + dependencies packaged together</li>
+                <li>Share host OS kernel</li>
+                <li>Much lighter than VMs (MBs vs GBs)</li>
+                <li>Start in seconds</li>
+            </ul>
+            
+            <h2>VM vs Container Comparison</h2>
+            <div class="comparison">
+                <div class="comparison-item" style="background: #fff3e0; border-color: #ff9800;">
+                    <h3>Virtual Machine</h3>
+                    <ul>
+                        <li>Includes full Guest OS</li>
+                        <li>GBs in size</li>
+                        <li>Minutes to boot</li>
+                        <li>Hardware virtualization</li>
+                    </ul>
+                </div>
+                <div class="comparison-item" style="background: #e8f5e9; border-color: #4caf50;">
+                    <h3>Container</h3>
+                    <ul>
+                        <li>Shares host OS</li>
+                        <li>MBs in size</li>
+                        <li>Seconds to start</li>
+                        <li>OS-level virtualization</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h2>Kubernetes: The Orchestrator</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Features</h4>
+                    <p>• Declarative management</p>
+                    <p>• Auto-healing and auto-scaling</p>
+                    <p>• Service discovery</p>
+                    <p>• Rolling updates</p>
+                </div>
+                <div class="card">
+                    <h4>Challenges</h4>
+                    <p>• Cluster management complexity</p>
+                    <p>• Kubernetes learning curve</p>
+                    <p>• Capacity planning still needed</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Era 5 - PaaS -->
+        <div class="slide">
+            <h1>Era 5: Platform as a Service (2007-2014)</h1>
+            <h2>Server Abstraction</h2>
+            
+            <div class="timeline">
+                <div class="timeline-item">
+                    <span class="timeline-year">2007 - Heroku</span>
+                    <p>Deploy with <code>git push heroku main</code></p>
+                    <p>Complete infrastructure abstraction</p>
+                    <p>Focus exclusively on code</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2008 - Google App Engine</span>
+                    <p>Automatic transparent scaling</p>
+                    <p>Multi-language support</p>
+                    <p>Integrated managed services</p>
+                </div>
+            </div>
+            
+            <h2>PaaS Characteristics</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4><span class="checkmark">✓</span> Benefits</h4>
+                    <p>• Simplified deployment</p>
+                    <p>• Automatic scalability</p>
+                    <p>• Standardized environment</p>
+                    <p>• Built-in services (DB, cache, queues)</p>
+                </div>
+                <div class="card">
+                    <h4><span class="crossmark">✗</span> Limitations</h4>
+                    <p>• Significant vendor lock-in</p>
+                    <p>• Limited environment control</p>
+                    <p>• Can be expensive at scale</p>
+                    <p>• Less flexibility than IaaS</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Era 6 - Serverless Birth -->
+        <div class="slide">
+            <h1>Era 6: Serverless / FaaS (2014-Present)</h1>
+            <div class="quote">
+                "AWS Lambda - November 2014: The Birth of Serverless<br>
+                Don't think about servers. Think about functions executing in response to events."
+            </div>
+            
+            <h2>Revolutionary Characteristics</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>1. Ephemeral Execution</h4>
+                    <p>• Functions live only during execution</p>
+                    <p>• No 24/7 infrastructure</p>
+                    <p>• Infinite transparent auto-scaling</p>
+                </div>
+                <div class="card">
+                    <h4>2. Event-Driven</h4>
+                    <p>• Responds to events from multiple sources</p>
+                    <p>• Native cloud ecosystem integration</p>
+                    <p>• Event-oriented architecture</p>
+                </div>
+                <div class="card">
+                    <h4>3. Micro-billing</h4>
+                    <p>• Charged per 100ms of execution</p>
+                    <p>• First 1M invocations free (AWS)</p>
+                    <p>• Zero cost when not executing</p>
+                </div>
+                <div class="card">
+                    <h4>4. Zero Administration</h4>
+                    <p>• No servers to manage</p>
+                    <p>• No patching or maintenance</p>
+                    <p>• No capacity planning</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: Serverless Timeline -->
+        <div class="slide">
+            <h1>Serverless Evolution Timeline</h1>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <span class="timeline-year">2014</span>
+                    <p>AWS Lambda launches (Node.js)</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2015</span>
+                    <p>Lambda adds Python support</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2016</span>
+                    <p>Azure Functions launched • Google Cloud Functions beta • Lambda adds Java, C#</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2017</span>
+                    <p>Lambda@Edge for edge computing • Serverless Framework 1.0 • Azure Functions GA</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2018</span>
+                    <p>Lambda Layers • Lambda Custom Runtimes • Explosive ecosystem growth</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2019</span>
+                    <p>Lambda Provisioned Concurrency • EventBridge launched • Serverless containers (Fargate)</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2020-2025</span>
+                    <p>Increased limits (10GB RAM, 15min timeout) • Container support in Lambda • AI/ML integration • Edge computing serverless • Serverless SQL databases</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Era Comparison -->
+        <div class="slide">
+            <h1>Comparing All Eras</h1>
+            <table>
+                <tr>
+                    <th>Aspect</th>
+                    <th>On-Premise</th>
+                    <th>VMs (IaaS)</th>
+                    <th>Containers</th>
+                    <th>PaaS</th>
+                    <th>Serverless</th>
+                </tr>
+                <tr>
+                    <td><strong>Provisioning</strong></td>
+                    <td>Weeks/Months</td>
+                    <td>Minutes</td>
+                    <td>Seconds</td>
+                    <td>Minutes</td>
+                    <td>Milliseconds</td>
+                </tr>
+                <tr>
+                    <td><strong>Scalability</strong></td>
+                    <td>Manual, Slow</td>
+                    <td>Manual/Auto</td>
+                    <td>Manual/Auto</td>
+                    <td>Automatic</td>
+                    <td>Automatic</td>
+                </tr>
+                <tr>
+                    <td><strong>Utilization</strong></td>
+                    <td>10-15%</td>
+                    <td>40-60%</td>
+                    <td>60-80%</td>
+                    <td>70-90%</td>
+                    <td>~100%</td>
+                </tr>
+                <tr>
+                    <td><strong>Idle Cost</strong></td>
+                    <td>High</td>
+                    <td>Medium-High</td>
+                    <td>Medium</td>
+                    <td>Low-Medium</td>
+                    <td>Zero</td>
+                </tr>
+                <tr>
+                    <td><strong>Management</strong></td>
+                    <td>Everything</td>
+                    <td>OS + App</td>
+                    <td>App + Orchestration</td>
+                    <td>Just App</td>
+                    <td>Just Code</td>
+                </tr>
+                <tr>
+                    <td><strong>Boot Time</strong></td>
+                    <td>Minutes</td>
+                    <td>Minutes</td>
+                    <td>Seconds</td>
+                    <td>Minutes</td>
+                    <td><100ms</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Slide 11: What is Serverless -->
+        <div class="slide">
+            <h1>What is Serverless?</h1>
+            <div class="quote">
+                "Serverless doesn't mean no servers, but rather that developers don't manage servers"
+            </div>
+            
+            <h2>Key Principles</h2>
+            <ul>
+                <li><strong>Developers don't manage servers:</strong> Infrastructure is completely abstracted</li>
+                <li><strong>Provider handles everything:</strong> Provisioning, scaling, and maintenance</li>
+                <li><strong>Pay-per-use:</strong> Billing based on actual consumption</li>
+            </ul>
+            
+            <h2>Main Components</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Function as a Service (FaaS)</h4>
+                    <p>• AWS Lambda, Azure Functions, Google Cloud Functions</p>
+                    <p>• Code units executed on demand</p>
+                    <p>• Stateless and ephemeral</p>
+                    <p>• Respond to specific events</p>
+                </div>
+                <div class="card">
+                    <h4>Backend as a Service (BaaS)</h4>
+                    <p>• Managed services complementing functions</p>
+                    <p>• Databases (DynamoDB, Firestore)</p>
+                    <p>• Authentication (Cognito, Auth0)</p>
+                    <p>• Storage (S3, Cloud Storage)</p>
+                    <p>• Managed APIs (API Gateway)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: Event-Driven Architecture -->
+        <div class="slide">
+            <h1>Event-Driven Architecture</h1>
+            <h2>Execution Model</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">Event</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Trigger</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Function</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Processing</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item" style="background: var(--gradient-accent);">Response/Action</div>
+                </div>
+            </div>
+            
+            <h2>Types of Events</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Synchronous</h4>
+                    <p>• HTTP/REST API (API Gateway)</p>
+                    <p>• Direct requests</p>
+                    <p>• Immediate response expected</p>
+                </div>
+                <div class="card">
+                    <h4>Asynchronous</h4>
+                    <p>• File upload (S3)</p>
+                    <p>• Queue messages (SQS)</p>
+                    <p>• Notifications (SNS)</p>
+                    <p>• Scheduled events (CloudWatch)</p>
+                </div>
+                <div class="card">
+                    <h4>Stream-based</h4>
+                    <p>• DynamoDB Streams</p>
+                    <p>• Kinesis Data Streams</p>
+                    <p>• Real-time data processing</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Technical Benefits -->
+        <div class="slide">
+            <h1>Technical Benefits</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>Automatic Scalability</h4>
+                    <p>• Scales from zero to millions of requests</p>
+                    <p>• No manual configuration</p>
+                    <p>• Fast response to traffic spikes</p>
+                    <p>• Automatic downscaling in low periods</p>
+                </div>
+                <div class="card">
+                    <h4>High Availability</h4>
+                    <p>• Distributed across multiple availability zones</p>
+                    <p>• Built-in fault tolerance</p>
+                    <p>• High SLAs (typically 99.95%+)</p>
+                </div>
+                <div class="card">
+                    <h4>Agile Development</h4>
+                    <p>• Exclusive focus on business logic</p>
+                    <p>• Fast and frequent deployment</p>
+                    <p>• Faster iterations</p>
+                    <p>• Reduced time-to-market</p>
+                </div>
+                <div class="card">
+                    <h4>Enhanced Security</h4>
+                    <p>• Automatic patches and updates</p>
+                    <p>• Isolation per execution</p>
+                    <p>• Granular IAM</p>
+                    <p>• Reduced attack surface</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Economic Benefits -->
+        <div class="slide">
+            <h1>Economic Benefits</h1>
+            <h2>Optimized Cost Model</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Pay-Per-Use</h4>
+                    <p>• Zero cost when inactive</p>
+                    <p>• Pay per milliseconds of execution</p>
+                    <p>• No idle infrastructure costs</p>
+                    <p>• Cost predictability based on usage</p>
+                </div>
+                <div class="card">
+                    <h4>Reduced Operational Costs</h4>
+                    <p>• No need for dedicated infrastructure team</p>
+                    <p>• Less time on maintenance</p>
+                    <p>• Elimination of over-provisioning costs</p>
+                    <p>• Automatic resource optimization</p>
+                </div>
+            </div>
+            
+            <h2>AWS Lambda Pricing Example</h2>
+            <div class="era-box">
+                <ul>
+                    <li>First 1 million requests/month: <strong>FREE</strong></li>
+                    <li>$0.20 per 1 million additional requests</li>
+                    <li>$0.0000166667 per GB-second of memory</li>
+                </ul>
+            </div>
+            
+            <div class="emphasis">
+                Example: A function running 100ms with 512MB, invoked 5M times/month = ~$25/month
+            </div>
+        </div>
+
+        <!-- Slide 15: Use Case 1 - APIs -->
+        <div class="slide">
+            <h1>Use Case 1: APIs and Microservices</h1>
+            <h2>Scenario: Backend for web and mobile applications</h2>
+            
+            <div class="diagram">
+                <h3>Typical Architecture</h3>
+                <div class="flow">
+                    <div class="flow-item">API Gateway</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Lambda</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">DynamoDB</div>
+                </div>
+                <p style="margin-top: 20px;">Authentication via Cognito • Authorization with JWT</p>
+            </div>
+            
+            <h2>Advantages</h2>
+            <ul>
+                <li><strong>Automatic scaling:</strong> Handles thousands of users transparently</li>
+                <li><strong>Proportional cost:</strong> Pay only for actual usage</li>
+                <li><strong>Independent deployment:</strong> Each endpoint deploys separately</li>
+            </ul>
+            
+            <div class="emphasis">
+                Real Example: Delivery app with peaks during lunch/dinner hours
+            </div>
+        </div>
+
+        <!-- Slide 16: Use Case 2 - Data Processing -->
+        <div class="slide">
+            <h1>Use Case 2: Real-Time Data Processing</h1>
+            <h2>Scenario: Streaming analytics and IoT</h2>
+            
+            <div class="diagram">
+                <h3>Architecture</h3>
+                <div class="flow">
+                    <div class="flow-item">Kinesis<br/>Data Streams</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Lambda</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">DynamoDB<br/>/ S3</div>
+                </div>
+            </div>
+            
+            <div class="grid">
+                <div class="card">
+                    <h4>✓ Advantages</h4>
+                    <p>• Processes millions of events per second</p>
+                    <p>• Low latency</p>
+                    <p>• Cost-effective</p>
+                    <p>• Massive parallel processing</p>
+                </div>
+                <div class="card">
+                    <h4>📊 Real Example</h4>
+                    <p>Connected vehicle fleet telemetry</p>
+                    <p>• 10,000 vehicles sending data every 10 seconds</p>
+                    <p>• Real-time processing and alerts</p>
+                    <p>• Historical storage for analytics</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: Use Case 3 - Automation -->
+        <div class="slide">
+            <h1>Use Case 3: Automation and Workflows</h1>
+            <h2>Scenario: Image, video, and document processing</h2>
+            
+            <div class="diagram">
+                <h3>Processing Pipeline</h3>
+                <div class="flow">
+                    <div class="flow-item">S3<br/>Upload</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Lambda</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Rekognition<br/>Textract</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">S3/<br/>Database</div>
+                </div>
+                <p style="margin-top: 20px;">Step Functions for orchestration</p>
+            </div>
+            
+            <h2>Benefits</h2>
+            <ul>
+                <li><strong>On-demand processing:</strong> Only runs when files are uploaded</li>
+                <li><strong>Automatic parallelization:</strong> Handles multiple files simultaneously</li>
+                <li><strong>No idle infrastructure:</strong> Zero cost when no uploads</li>
+            </ul>
+            
+            <div class="emphasis">
+                Real Example: Document management platform with automatic OCR for invoices
+            </div>
+        </div>
+
+        <!-- Slide 18: Use Case 4 - E-commerce -->
+        <div class="slide">
+            <h1>Use Case 4: E-commerce Backends</h1>
+            <h2>Scenario: Order and payment systems</h2>
+            
+            <div class="grid">
+                <div class="card">
+                    <h4>Architecture</h4>
+                    <p>• API Gateway → Lambda → DynamoDB</p>
+                    <p>• SQS for async processing</p>
+                    <p>• SNS for notifications</p>
+                    <p>• EventBridge for orchestration</p>
+                </div>
+                <div class="card">
+                    <h4>Advantages</h4>
+                    <p>• Supports Black Friday without reconfiguration</p>
+                    <p>• Critical high availability</p>
+                    <p>• Optimized costs outside peaks</p>
+                    <p>• Elastic payment processing</p>
+                </div>
+            </div>
+            
+            <div class="emphasis">
+                Real Example: Checkout that scales from 100 to 10,000 orders/minute automatically
+            </div>
+            
+            <h3>Black Friday Scenario</h3>
+            <p>Normal day: 500 orders/hour → $20/day</p>
+            <p>Black Friday: 50,000 orders/hour → $150/day (only for that day)</p>
+            <p>Traditional infrastructure would require capacity for the peak year-round!</p>
+        </div>
+
+        <!-- Slide 19: Use Case 5 - Scheduled Jobs -->
+        <div class="slide">
+            <h1>Use Case 5: Scheduled Jobs and Cron</h1>
+            <h2>Scenario: Scheduled tasks and batch processing</h2>
+            
+            <div class="diagram">
+                <h3>Architecture</h3>
+                <div class="flow">
+                    <div class="flow-item">EventBridge<br/>(CloudWatch)</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Lambda<br/>Function</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Process /<br/>Generate</div>
+                </div>
+            </div>
+            
+            <div class="grid">
+                <div class="card">
+                    <h4>Use Cases</h4>
+                    <p>• Nightly report generation</p>
+                    <p>• Database cleanup</p>
+                    <p>• Data synchronization</p>
+                    <p>• Scheduled backups</p>
+                    <p>• Periodic health checks</p>
+                </div>
+                <div class="card">
+                    <h4>Benefits</h4>
+                    <p>• No 24/7 running servers</p>
+                    <p>• Reliable monitored execution</p>
+                    <p>• Minimal cost</p>
+                    <p>• Easy schedule management</p>
+                    <p>• Automatic retry on failure</p>
+                </div>
+            </div>
+            
+            <div class="emphasis">
+                Real Example: Daily sales report generated at 6am - runs for 2 minutes, costs $0.001
+            </div>
+        </div>
+
+        <!-- Slide 20: When to Use Serverless -->
+        <div class="slide">
+            <h1>When to Use Serverless</h1>
+            <h2><span class="checkmark">✓</span> Ideal Scenarios</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Variable Workloads</h4>
+                    <p>• Unpredictable or seasonal traffic</p>
+                    <p>• Demand peaks and valleys</p>
+                    <p>• Applications with inactivity periods</p>
+                </div>
+                <div class="card">
+                    <h4>Rapid Development</h4>
+                    <p>• MVPs and prototypes</p>
+                    <p>• Startups with small teams</p>
+                    <p>• Need for fast launch</p>
+                </div>
+                <div class="card">
+                    <h4>Event-Driven</h4>
+                    <p>• Event-based processing</p>
+                    <p>• Automated workflows</p>
+                    <p>• System integrations</p>
+                </div>
+                <div class="card">
+                    <h4>Unknown Scale</h4>
+                    <p>• New products in market</p>
+                    <p>• Unpredictable growth</p>
+                    <p>• Need for extreme elasticity</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 21: When NOT to Use Serverless -->
+        <div class="slide">
+            <h1>When NOT to Use Serverless</h1>
+            <h2><span class="crossmark">✗</span> Unsuitable Scenarios</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Monolithic Legacy Apps</h4>
+                    <p>• Difficult to decompose into functions</p>
+                    <p>• High coupling</p>
+                    <p>• Better to migrate gradually</p>
+                </div>
+                <div class="card">
+                    <h4>24/7 Constant Workloads</h4>
+                    <p>• Continuous predictable high usage</p>
+                    <p>• May be more expensive than reserved instances</p>
+                    <p>• Calculate TCO before deciding</p>
+                </div>
+                <div class="card">
+                    <h4>Specific Hardware Requirements</h4>
+                    <p>• Specialized GPUs</p>
+                    <p>• FPGAs</p>
+                    <p>• Custom hardware</p>
+                </div>
+                <div class="card">
+                    <h4>Heavy Dependencies</h4>
+                    <p>• Applications with giant libraries (>250MB)</p>
+                    <p>• Very large containers</p>
+                    <p>• Unacceptable cold start time</p>
+                </div>
+            </div>
+            
+            <h2><span class="warning">⚠</span> Consider Carefully</h2>
+            <ul>
+                <li><strong>Critical Cold Starts:</strong> Apps with very tight latency SLA (<100ms) - Consider Provisioned Concurrency</li>
+                <li><strong>Long Processing:</strong> Tasks over 15 minutes (Lambda limit) - Alternative: ECS Fargate, Batch</li>
+                <li><strong>Complex Shared State:</strong> Strongly stateful applications - Solution: Use cache services (ElastiCache, DynamoDB)</li>
+            </ul>
+        </div>
+
+        <!-- Slide 22: Challenges -->
+        <div class="slide">
+            <h1>Challenges and Considerations</h1>
+            <h2>Technical Challenges</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Debugging & Observability</h4>
+                    <p><strong>Challenge:</strong> Distributed logs, complex tracing</p>
+                    <p><strong>Solution:</strong> CloudWatch Logs, X-Ray, structured logging, distributed tracing</p>
+                </div>
+                <div class="card">
+                    <h4>Vendor Lock-in</h4>
+                    <p><strong>Challenge:</strong> Dependence on provider-specific services</p>
+                    <p><strong>Mitigation:</strong> Multi-cloud frameworks, service abstraction layers</p>
+                </div>
+                <div class="card">
+                    <h4>Execution Limits</h4>
+                    <p><strong>Constraints:</strong> Timeout (15min), Payload size (6MB), Memory (10GB)</p>
+                    <p><strong>Solution:</strong> Design within limits or use alternatives</p>
+                </div>
+                <div class="card">
+                    <h4>Local Testing</h4>
+                    <p><strong>Challenge:</strong> Different environment from production</p>
+                    <p><strong>Solution:</strong> SAM CLI, LocalStack, Serverless Framework</p>
+                </div>
+            </div>
+            
+            <h2>Organizational Challenges</h2>
+            <ul>
+                <li><strong>Mindset Shift:</strong> Distributed architecture, event-driven thinking, need for training</li>
+                <li><strong>Cost Monitoring:</strong> Difficult to predict costs initially, need for tagging and alerts, continuous optimization</li>
+            </ul>
+        </div>
+
+        <!-- Slide 23: Best Practices - Function Design -->
+        <div class="slide">
+            <h1>Best Practices: Function Design</h1>
+            <h2>Design Principles</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Single Responsibility</h4>
+                    <p>• One function, one specific task</p>
+                    <p>• Small and focused functions</p>
+                    <p>• Facilitates maintenance and testing</p>
+                </div>
+                <div class="card">
+                    <h4>Idempotency</h4>
+                    <p>• Functions produce same result with same input</p>
+                    <p>• Crucial for retry logic</p>
+                    <p>• Avoids duplicate processing</p>
+                </div>
+                <div class="card">
+                    <h4>Statelessness</h4>
+                    <p>• Don't maintain state between invocations</p>
+                    <p>• Use external services for persistence</p>
+                    <p>• Cache connections in global scope</p>
+                </div>
+            </div>
+            
+            <h2>Performance Optimization</h2>
+            <ul>
+                <li><strong>Cold Start Optimization:</strong> Minimize dependencies, lazy loading of resources, Provisioned Concurrency for critical cases</li>
+                <li><strong>Memory Sizing:</strong> More memory = more CPU, test different configurations, balance cost vs performance</li>
+                <li><strong>Connection Reuse:</strong> Database connections outside handler, reuse SDK clients, connection pooling</li>
+            </ul>
+        </div>
+
+        <!-- Slide 24: Best Practices - Security -->
+        <div class="slide">
+            <h1>Best Practices: Security</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>Least Privilege</h4>
+                    <p>• IAM roles with minimum permissions</p>
+                    <p>• One role per function when needed</p>
+                    <p>• Review permissions regularly</p>
+                    <p>• Use resource-based policies</p>
+                </div>
+                <div class="card">
+                    <h4>Secrets Management</h4>
+                    <p>• Never hardcode credentials</p>
+                    <p>• AWS Secrets Manager or Parameter Store</p>
+                    <p>• Automatic secret rotation</p>
+                    <p>• Encrypt at rest and in transit</p>
+                </div>
+                <div class="card">
+                    <h4>Input Validation</h4>
+                    <p>• Always validate input data</p>
+                    <p>• Payload sanitization</p>
+                    <p>• Protection against injection attacks</p>
+                    <p>• Use schema validation</p>
+                </div>
+                <div class="card">
+                    <h4>Network Security</h4>
+                    <p>• VPC integration when needed</p>
+                    <p>• Security groups and NACLs</p>
+                    <p>• Private subnets for sensitive resources</p>
+                    <p>• VPC endpoints for AWS services</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 25: Tools and Frameworks -->
+        <div class="slide">
+            <h1>Tools and Frameworks</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>AWS SAM</h4>
+                    <p>• CloudFormation-based template</p>
+                    <p>• CLI for local testing</p>
+                    <p>• Simplified deployment</p>
+                    <p>• AWS native integration</p>
+                </div>
+                <div class="card">
+                    <h4>Serverless Framework</h4>
+                    <p>• Multi-cloud support</p>
+                    <p>• Large plugin ecosystem</p>
+                    <p>• Active community</p>
+                    <p>• Easy to get started</p>
+                </div>
+                <div class="card">
+                    <h4>AWS CDK</h4>
+                    <p>• Infrastructure as Code in programming languages</p>
+                    <p>• TypeScript, Python, Java support</p>
+                    <p>• Type-safety and refactoring</p>
+                    <p>• Powerful abstractions</p>
+                </div>
+                <div class="card">
+                    <h4>Terraform</h4>
+                    <p>• Multi-cloud support</p>
+                    <p>• Robust state management</p>
+                    <p>• Enterprise integrations</p>
+                    <p>• Large provider ecosystem</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 26: The Future of Serverless -->
+        <div class="slide">
+            <h1>The Future of Serverless</h1>
+            <h2>Emerging Trends</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Serverless Containers</h4>
+                    <p>• AWS Fargate, Cloud Run</p>
+                    <p>• Container flexibility with serverless model</p>
+                    <p>• Better for larger workloads</p>
+                </div>
+                <div class="card">
+                    <h4>Edge Computing</h4>
+                    <p>• Lambda@Edge, CloudFront Functions</p>
+                    <p>• Processing close to users</p>
+                    <p>• Ultra-low latency</p>
+                </div>
+                <div class="card">
+                    <h4>Serverless AI/ML</h4>
+                    <p>• Serverless inference</p>
+                    <p>• Distributed training</p>
+                    <p>• AI democratization</p>
+                </div>
+                <div class="card">
+                    <h4>WebAssembly</h4>
+                    <p>• Portability across clouds</p>
+                    <p>• Improved performance</p>
+                    <p>• Reduced vendor lock-in</p>
+                </div>
+            </div>
+            
+            <h2>Multi-Cloud and Hybrid Future</h2>
+            <ul>
+                <li>Combination of paradigms (VMs + Containers + Serverless)</li>
+                <li>Kubernetes with serverless (Knative, OpenFaaS)</li>
+                <li>Serverless on the edge and in data centers</li>
+                <li>Unified observability and management</li>
+            </ul>
+        </div>
+
+        <!-- Slide 27: Key Takeaways -->
+        <div class="slide">
+            <h1>Key Takeaways</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>🎯 Focus on Value</h4>
+                    <p>Serverless allows developers to focus exclusively on business logic, not infrastructure management</p>
+                </div>
+                <div class="card">
+                    <h4>💰 Pay for Value</h4>
+                    <p>Pay only for what you actually use. Zero cost when idle. True consumption-based pricing</p>
+                </div>
+                <div class="card">
+                    <h4>📈 Infinite Scale</h4>
+                    <p>Automatic scaling from zero to millions of requests without manual intervention</p>
+                </div>
+                <div class="card">
+                    <h4>⚡ Speed to Market</h4>
+                    <p>Faster development cycles, rapid deployment, quick iteration on ideas</p>
+                </div>
+            </div>
+            
+            <h2>The Evolution Continues</h2>
+            <p>Each era built upon lessons from the previous one, leading us to a future where infrastructure becomes increasingly invisible, and focus stays where it should be: creating business value.</p>
+            
+            <div class="emphasis">
+                Serverless is not just a technology—it's a fundamental shift in how we build and operate cloud applications
+            </div>
+        </div>
+
+        <!-- Slide 28: Success Factors -->
+        <div class="slide">
+            <h1>Success Factors for Serverless</h1>
+            <h2>Perfect For:</h2>
+            <ul>
+                <li><strong>Startups and growing companies:</strong> Focus on product, not infrastructure</li>
+                <li><strong>Variable traffic applications:</strong> Automatic scaling for peaks and valleys</li>
+                <li><strong>Product-focused teams:</strong> Want to focus on features, not operations</li>
+                <li><strong>Event-driven use cases:</strong> Natural fit for event-based architectures</li>
+            </ul>
+            
+            <h2>Requirements for Success</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>Mindset Shift</h4>
+                    <p>• Think distributed</p>
+                    <p>• Think event-driven</p>
+                    <p>• Embrace statelessness</p>
+                </div>
+                <div class="card">
+                    <h4>Right Tools</h4>
+                    <p>• Modern frameworks</p>
+                    <p>• Observability platforms</p>
+                    <p>• Testing strategies</p>
+                </div>
+                <div class="card">
+                    <h4>Best Practices</h4>
+                    <p>• Security from day one</p>
+                    <p>• Cost monitoring</p>
+                    <p>• Performance optimization</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 29: Next Steps -->
+        <div class="slide">
+            <h1>Next Steps for Your Serverless Journey</h1>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <span class="timeline-year">Step 1</span>
+                    <p><strong>Deeply understand event-driven model</strong></p>
+                    <p>Study how events trigger functions, async vs sync patterns, event sources</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">Step 2</span>
+                    <p><strong>Practice with AWS Lambda and related services</strong></p>
+                    <p>Build simple functions, integrate with S3, DynamoDB, API Gateway</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">Step 3</span>
+                    <p><strong>Apply serverless architecture patterns</strong></p>
+                    <p>Implement microservices, data pipelines, automation workflows</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">Step 4</span>
+                    <p><strong>Master observability tools</strong></p>
+                    <p>CloudWatch, X-Ray, structured logging, distributed tracing</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">Step 5</span>
+                    <p><strong>Implement security and best practices from the start</strong></p>
+                    <p>IAM policies, secrets management, input validation, monitoring</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 30: Conclusion -->
+        <div class="slide">
+            <div class="title-slide">
+                <h1>Embrace the Serverless Revolution</h1>
+                <div class="quote">
+                    "The future of software development is automated, integrated, and serverless"
+                </div>
+                <div class="grid" style="margin-top: 50px;">
+                    <div class="card">
+                        <h4>📈 Infinite Scale</h4>
+                        <p>From zero to millions</p>
+                    </div>
+                </div>
+                <div class="emphasis" style="margin-top: 40px; background: transparent; border: none;">
+                    <p style="font-size: 1.8em; color: var(--primary);">Build Less Infrastructure. Ship More Value. Scale Infinitely.</p>
+                </div>
+                <p class="author" style="margin-top: 40px;">Ready to go serverless? Start small, think big! 🚀</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="prevBtn" onclick="changeSlide(-1)">
+            <span>←</span> Previous
+        </button>
+        <button class="btn" id="homeBtn" onclick="goToSlide(0)">
+            <span>⌂</span> Home
+        </button>
+        <button class="btn" id="nextBtn" onclick="changeSlide(1)">
+            Next <span>→</span>
+        </button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            
+            document.getElementById('slideCounter').textContent = `${currentSlide + 1} / ${totalSlides}`;
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+            
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            localStorage.setItem('serverlessSlide', currentSlide);
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function goToSlide(n) {
+            showSlide(n);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && currentSlide > 0) changeSlide(-1);
+            if (e.key === 'ArrowRight' && currentSlide < totalSlides - 1) changeSlide(1);
+            if (e.key === 'Home') goToSlide(0);
+            if (e.key === 'End') goToSlide(totalSlides - 1);
+            if (e.key === 'f' || e.key === 'F') toggleFullScreen();
+            if (e.key === 'Escape') exitFullScreen();
+            
+            const hint = document.getElementById('keyboardHint');
+            hint.classList.add('show');
+            setTimeout(() => hint.classList.remove('show'), 3000);
+        });
+
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchEndX < touchStartX - swipeThreshold && currentSlide < totalSlides - 1) {
+                changeSlide(1);
+            }
+            if (touchEndX > touchStartX + swipeThreshold && currentSlide > 0) {
+                changeSlide(-1);
+            }
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function exitFullScreen() {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        }
+
+        const savedSlide = localStorage.getItem('serverlessSlide');
+        if (savedSlide !== null) {
+            showSlide(parseInt(savedSlide));
+        } else {
+            showSlide(0);
+        }
+
+        setTimeout(() => {
+            const hint = document.getElementById('keyboardHint');
+            hint.classList.add('show');
+            setTimeout(() => hint.classList.remove('show'), 5000);
+        }, 1000);
+    </script>
+</body>
+</html>>⚡ Event-Driven</h4>
+                        <p>Respond to events at scale</p>
+                    </div>
+                    <div class="card">
+                        <h4>💰 Cost-Efficient</h4>
+                        <p>Pay only for value</p>
+                    </div>
+                    <div class="card">
+                        <h4>🚀 Lightning Fast</h4>
+                        <p>From idea to production</p>
+                    </div>
+                    <div class="card">
+                        <h4

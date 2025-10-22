@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Serverless - Event-Driven Architecture</title>
+    <style>
+        :root {
+            --primary: #FF6B6B;
+            --secondary: #4ECDC4;
+            --accent: #45B7D1;
+            --dark: #1a1a1a;
+            --light: #f6f8fa;
+            --text: #24292f;
+            --gradient-primary: linear-gradient(135deg, #FF6B6B 0%, #EE5A6F 100%);
+            --gradient-accent: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+            --shadow-light: 0 2px 10px rgba(0,0,0,0.1);
+            --shadow-medium: 0 5px 20px rgba(0,0,0,0.15);
+            --shadow-heavy: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .presentation-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide {
+            display: none;
+            width: 92%;
+            max-width: 1400px;
+            height: 88vh;
+            background: white;
+            border-radius: 12px;
+            padding: 80px;
+            box-shadow: var(--shadow-heavy);
+            overflow-y: auto;
+            animation: slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide h1 {
+            color: var(--dark);
+            font-size: 2.8em;
+            font-weight: 700;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .slide h2 {
+            color: var(--primary);
+            font-size: 2em;
+            font-weight: 600;
+            margin: 40px 0 25px 0;
+            letter-spacing: -0.3px;
+        }
+
+        .slide h3 {
+            color: var(--dark);
+            font-size: 1.5em;
+            font-weight: 600;
+            margin: 30px 0 20px 0;
+        }
+
+        .slide p, .slide li {
+            font-size: 1.15em;
+            line-height: 1.8;
+            margin: 18px 0;
+            color: var(--text);
+        }
+
+        .slide ul {
+            margin-left: 25px;
+        }
+
+        .slide li {
+            margin: 15px 0;
+            list-style: none;
+            position: relative;
+            padding-left: 35px;
+        }
+
+        .slide li:before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        .highlight {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 15px 0;
+            font-weight: 600;
+            box-shadow: var(--shadow-light);
+        }
+
+        .quote {
+            background: var(--light);
+            border-left: 4px solid var(--primary);
+            padding: 25px 30px;
+            margin: 30px 0;
+            font-style: italic;
+            border-radius: 6px;
+            position: relative;
+            color: var(--text);
+        }
+
+        .quote:before {
+            content: '"';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            font-size: 60px;
+            color: var(--primary);
+            opacity: 0.2;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin: 35px 0;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid #e1e8ed;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .card h4 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .card p {
+            color: var(--text);
+            font-size: 1em;
+            margin: 10px 0;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 50px;
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .btn {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            background: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: var(--dark);
+            font-weight: 600;
+            box-shadow: var(--shadow-medium);
+            font-size: 0.95em;
+        }
+
+        .diagram {
+            background: var(--light);
+            padding: 40px;
+            border-radius: 8px;
+            margin: 35px 0;
+            text-align: center;
+            border: 1px solid #e1e8ed;
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            margin: 35px 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-item {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 20px 35px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1em;
+            box-shadow: var(--shadow-light);
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .arrow {
+            font-size: 1.8em;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 35px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+
+        th {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 18px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px 18px;
+            border-bottom: 1px solid #e1e8ed;
+            background: white;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: var(--light);
+        }
+
+        .emphasis {
+            font-size: 1.4em;
+            color: var(--primary);
+            font-weight: 600;
+            text-align: center;
+            margin: 40px 0;
+            padding: 25px;
+            background: var(--light);
+            border-radius: 8px;
+            border: 2px solid var(--primary);
+        }
+
+        .title-slide {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .title-slide h1 {
+            font-size: 3.5em;
+            margin-bottom: 30px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            border: none;
+            padding: 0;
+        }
+
+        .subtitle {
+            font-size: 1.6em;
+            color: var(--text);
+            margin: 20px 0;
+            font-weight: 300;
+        }
+
+        .author {
+            font-size: 1.2em;
+            color: #666;
+            margin-top: 50px;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1001;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin: 35px 0;
+        }
+
+        .comparison-item {
+            padding: 25px;
+            border-radius: 8px;
+        }
+
+        .before {
+            background: #fee;
+            border: 2px solid #f44336;
+        }
+
+        .after {
+            background: #efe;
+            border: 2px solid #4caf50;
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+            box-shadow: var(--shadow-light);
+            white-space: pre;
+        }
+
+        .code-block code {
+            color: #9cdcfe;
+        }
+
+        .keyboard-hint {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .keyboard-hint.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 40px 30px;
+                width: 95%;
+            }
+            .slide h1 {
+                font-size: 2em;
+            }
+            .slide h2 {
+                font-size: 1.5em;
+            }
+            .grid, .comparison {
+                grid-template-columns: 1fr;
+            }
+            .flow {
+                flex-direction: column;
+            }
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        .slide::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .slide::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .slide::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="slide-counter" id="slideCounter">1 / 35</div>
+    <div class="keyboard-hint" id="keyboardHint">Use ← → to navigate | F for fullscreen</div>
+    
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <div class="title-slide">
+                <h1>AWS Serverless</h1>
+                <p class="subtitle">Event-Driven Architecture</p>
+                <p class="author">Kirk Patrick</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Table of Contents -->
+        <div class="slide">
+            <h1>Table of Contents</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>📚 Fundamentals</h4>
+                    <p>• What is Event-Driven Architecture</p>
+                    <p>• EDA vs Request-Response</p>
+                    <p>• Why EDA for Serverless</p>
+                </div>
+                <div class="card">
+                    <h4>🎯 Core Concepts</h4>
+                    <p>• Events, Producers, Consumers</p>
+                    <p>• Event Brokers and Buses</p>
+                    <p>• Communication Patterns</p>
+                </div>
+                <div class="card">
+                    <h4>🏗️ Design Patterns</h4>
+                    <p>• Event Notification</p>
+                    <p>• Event Sourcing & CQRS</p>
+                    <p>• Saga Pattern</p>
+                </div>
+                <div class="card">
+                    <h4>☁️ AWS Implementation</h4>
+                    <p>• EventBridge, SNS, SQS</p>
+                    <p>• Kinesis & DynamoDB Streams</p>
+                    <p>• Best Practices</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: What is Event-Driven Architecture -->
+        <div class="slide">
+            <h1>What is Event-Driven Architecture?</h1>
+            <div class="quote">
+                Event-Driven Architecture (EDA) is a design pattern where the application flow is determined by events - significant state changes that occur in the system.
+            </div>
+            
+            <h2>Real-World Analogy</h2>
+            <div class="diagram">
+                <p><strong>Think of a home alarm system:</strong></p>
+                <div class="flow">
+                    <div class="flow-item">Motion Detected</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Sensor Triggers</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Alarm System</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Alert Owner</div>
+                </div>
+                <p style="margin-top: 20px;">No one constantly checks for motion. The system reacts when the event happens.</p>
+            </div>
+        </div>
+
+        <!-- Slide 4: Request-Response vs Event-Driven -->
+        <div class="slide">
+            <h1>Request-Response vs Event-Driven</h1>
+            <div class="comparison">
+                <div class="comparison-item before">
+                    <h3>🔄 Request-Response (Traditional)</h3>
+                    <ul>
+                        <li><strong>Synchronous:</strong> Client waits for response</li>
+                        <li><strong>Blocking:</strong> Both must be available simultaneously</li>
+                        <li><strong>Temporal Coupling:</strong> Direct point-to-point communication</li>
+                        <li><strong>Single Consumer:</strong> One request, one response</li>
+                    </ul>
+                </div>
+                <div class="comparison-item after">
+                    <h3>⚡ Event-Driven</h3>
+                    <ul>
+                        <li><strong>Asynchronous:</strong> Producer doesn't wait</li>
+                        <li><strong>Non-blocking:</strong> Temporal and spatial decoupling</li>
+                        <li><strong>Loose Coupling:</strong> Through event broker</li>
+                        <li><strong>Multiple Consumers:</strong> One event, many reactions</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h2>Example Flow</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">User Adds to Cart</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Event Published</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item" style="background: var(--gradient-accent);">Multiple Actions</div>
+                </div>
+                <p style="margin-top: 20px;">• Update Inventory • Send Email • Log Analytics • Trigger Recommendations</p>
+            </div>
+        </div>
+
+        <!-- Slide 5: Why EDA for Serverless -->
+        <div class="slide">
+            <h1>Why Event-Driven is Perfect for Serverless</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>1. Natural Decoupling</h4>
+                    <p>• Lambda functions are independent</p>
+                    <p>• Functions don't need to know each other</p>
+                    <p>• Easy to add/remove consumers</p>
+                    <p>• No direct dependencies</p>
+                </div>
+                <div class="card">
+                    <h4>2. Automatic Scalability</h4>
+                    <p>• Each event spawns a new function</p>
+                    <p>• Massive parallel processing</p>
+                    <p>• Lambda scales with event volume</p>
+                    <p>• No capacity planning needed</p>
+                </div>
+                <div class="card">
+                    <h4>3. Resilience</h4>
+                    <p>• Failure in one consumer doesn't affect others</p>
+                    <p>• Dead Letter Queues for problem events</p>
+                    <p>• Automatic retry mechanisms</p>
+                    <p>• Built-in fault tolerance</p>
+                </div>
+                <div class="card">
+                    <h4>4. Cost-Effective</h4>
+                    <p>• Pay only when events occur</p>
+                    <p>• No constant polling</p>
+                    <p>• No idle resources</p>
+                    <p>• True consumption-based pricing</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Event Anatomy -->
+        <div class="slide">
+            <h1>Anatomy of an Event</h1>
+            <div class="quote">
+                An event is an immutable record of something that happened in the system.
+            </div>
+            
+            <h2>Event Characteristics</h2>
+            <ul>
+                <li><strong>Immutable:</strong> Cannot be changed after creation</li>
+                <li><strong>Timestamped:</strong> Always has a temporal marker</li>
+                <li><strong>Contextual:</strong> Contains relevant information</li>
+                <li><strong>Past Tense:</strong> Describes something that ALREADY happened</li>
+            </ul>
+
+            <h2>Event Structure Example</h2>
+            <div class="code-block">
+{
+  "eventId": "evt_1234567890",
+  "eventType": "OrderPlaced",
+  "eventVersion": "1.0",
+  "timestamp": "2025-10-20T19:30:00Z",
+  "source": "order-service",
+  "correlationId": "corr_abc123",
+  "data": {
+    "orderId": "ORD-2024-001",
+    "customerId": "CUST-789",
+    "totalAmount": 299.99,
+    "currency": "USD"
+  }
+}
+            </div>
+        </div>
+
+        <!-- Slide 7: Core Components -->
+        <div class="slide">
+            <h1>Core Components of Event-Driven Architecture</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>📡 Event Producer</h4>
+                    <p><strong>Responsibilities:</strong></p>
+                    <p>• Detect significant state changes</p>
+                    <p>• Create well-formed events</p>
+                    <p>• Publish to correct broker/bus</p>
+                    <p>• Don't worry about consumers</p>
+                </div>
+                <div class="card">
+                    <h4>👂 Event Consumer</h4>
+                    <p><strong>Responsibilities:</strong></p>
+                    <p>• Subscribe to events of interest</p>
+                    <p>• Process events idempotently</p>
+                    <p>• Handle failures gracefully</p>
+                    <p>• Don't depend on other consumers</p>
+                </div>
+                <div class="card">
+                    <h4>🚌 Event Broker/Bus</h4>
+                    <p><strong>Responsibilities:</strong></p>
+                    <p>• Receive events from producers</p>
+                    <p>• Store events (temp or permanent)</p>
+                    <p>• Route to appropriate consumers</p>
+                    <p>• Guarantee delivery</p>
+                </div>
+                <div class="card">
+                    <h4>📋 Event Schema</h4>
+                    <p><strong>Purpose:</strong></p>
+                    <p>• Define event structure</p>
+                    <p>• Ensure compatibility</p>
+                    <p>• Enable versioning</p>
+                    <p>• Living API documentation</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Communication Pattern - Pub/Sub -->
+        <div class="slide">
+            <h1>Communication Pattern: Pub/Sub</h1>
+            <h2>How It Works</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">Publisher</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item" style="background: var(--gradient-accent);">Event Topic</div>
+                </div>
+                <div style="display: flex; justify-content: center; gap: 50px; margin-top: 30px;">
+                    <div class="flow-item">Subscriber A</div>
+                    <div class="flow-item">Subscriber B</div>
+                    <div class="flow-item">Subscriber C</div>
+                </div>
+            </div>
+
+            <h2>Characteristics</h2>
+            <ul>
+                <li>One producer, multiple consumers</li>
+                <li>Consumers subscribe to topics</li>
+                <li>Broadcast: all receive copy of event</li>
+                <li>Complete decoupling</li>
+            </ul>
+
+            <h2>When to Use</h2>
+            <ul>
+                <li>Notifications to multiple systems</li>
+                <li>Fan-out of events</li>
+                <li>Broadcasting updates</li>
+            </ul>
+        </div>
+
+        <!-- Slide 9: Communication Pattern - Message Queue -->
+        <div class="slide">
+            <h1>Communication Pattern: Message Queue</h1>
+            <h2>How It Works</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">Producer</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item" style="background: var(--gradient-accent);">Queue</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Consumer</div>
+                </div>
+            </div>
+
+            <h2>Characteristics</h2>
+            <ul>
+                <li>One producer, typically one consumer (or group)</li>
+                <li>Messages processed once</li>
+                <li>Order guarantees (FIFO queues)</li>
+                <li>Asynchronous processing</li>
+            </ul>
+
+            <h2>When to Use</h2>
+            <ul>
+                <li>Asynchronous task processing</li>
+                <li>Load leveling (smoothing spikes)</li>
+                <li>Ensuring each message is processed</li>
+                <li>Decoupling microservices</li>
+            </ul>
+        </div>
+
+        <!-- Slide 10: Communication Pattern - Event Streaming -->
+        <div class="slide">
+            <h1>Communication Pattern: Event Streaming</h1>
+            <h2>How It Works</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">Producers</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item" style="background: var(--gradient-accent);">Event Stream<br/>(Durable Storage)</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Consumers</div>
+                </div>
+            </div>
+
+            <h2>Characteristics</h2>
+            <ul>
+                <li>Events stored permanently</li>
+                <li>Replay capability</li>
+                <li>Multiple independent consumers</li>
+                <li>Real-time processing</li>
+            </ul>
+
+            <h2>When to Use</h2>
+            <ul>
+                <li>Real-time analytics</li>
+                <li>Event sourcing</li>
+                <li>Need for replay</li>
+                <li>Complete audit trail</li>
+            </ul>
+
+            <div class="emphasis">
+                AWS Example: IoT Devices → Kinesis Data Stream → Lambda Analytics + S3 Storage
+            </div>
+        </div>
+
+        <!-- Slide 11: Event Types - Sync vs Async -->
+        <div class="slide">
+            <h1>Event Types: Synchronous vs Asynchronous</h1>
+            <div class="comparison">
+                <div class="comparison-item" style="background: #e3f2fd; border-color: #2196f3;">
+                    <h3>🔵 Synchronous Events</h3>
+                    <p><strong>Characteristics:</strong></p>
+                    <ul>
+                        <li>Immediate response expected</li>
+                        <li>Direct invocation</li>
+                        <li>Client waits for result</li>
+                    </ul>
+                    <p><strong>AWS Sources:</strong></p>
+                    <ul>
+                        <li>API Gateway (HTTP requests)</li>
+                        <li>Application Load Balancer</li>
+                        <li>Lambda Function URLs</li>
+                        <li>Cognito authentication flows</li>
+                    </ul>
+                </div>
+                <div class="comparison-item" style="background: #e8f5e9; border-color: #4caf50;">
+                    <h3>🟢 Asynchronous Events</h3>
+                    <p><strong>Characteristics:</strong></p>
+                    <ul>
+                        <li>No immediate response</li>
+                        <li>Temporal decoupling</li>
+                        <li>Background processing</li>
+                    </ul>
+                    <p><strong>AWS Sources:</strong></p>
+                    <ul>
+                        <li>S3 (object created/deleted)</li>
+                        <li>SNS (topic messages)</li>
+                        <li>EventBridge (custom events)</li>
+                        <li>CloudWatch (log events)</li>
+                        <li>SES (email receiving)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: AWS Event Sources -->
+        <div class="slide">
+            <h1>Key AWS Event Sources</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>Amazon S3</h4>
+                    <p><strong>Events:</strong></p>
+                    <p>• ObjectCreated</p>
+                    <p>• ObjectRemoved</p>
+                    <p>• ObjectRestore</p>
+                    <p><strong>Use Cases:</strong></p>
+                    <p>Image/video processing, ETL, automatic backups</p>
+                </div>
+                <div class="card">
+                    <h4>Amazon EventBridge</h4>
+                    <p><strong>Events:</strong></p>
+                    <p>• Custom events</p>
+                    <p>• AWS service events</p>
+                    <p>• SaaS partner events</p>
+                    <p>• Scheduled (cron)</p>
+                    <p><strong>Use Cases:</strong></p>
+                    <p>Microservice integration, scheduled jobs, webhooks</p>
+                </div>
+                <div class="card">
+                    <h4>Amazon SQS</h4>
+                    <p><strong>Types:</strong></p>
+                    <p>• Standard (at-least-once)</p>
+                    <p>• FIFO (exactly-once)</p>
+                    <p><strong>Use Cases:</strong></p>
+                    <p>Async task processing, load leveling, decoupling</p>
+                </div>
+                <div class="card">
+                    <h4>Amazon SNS</h4>
+                    <p><strong>Pattern:</strong></p>
+                    <p>• Pub/Sub messaging</p>
+                    <p>• Fan-out capabilities</p>
+                    <p><strong>Use Cases:</strong></p>
+                    <p>Notifications (email/SMS), application messaging, broadcasting</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: More AWS Event Sources -->
+        <div class="slide">
+            <h1>More AWS Event Sources</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>Kinesis Data Streams</h4>
+                    <p><strong>Capabilities:</strong></p>
+                    <p>• Real-time data streaming</p>
+                    <p>• Configurable retention (24h-365d)</p>
+                    <p>• Multiple independent consumers</p>
+                    <p>• Replay capability</p>
+                    <p><strong>Use Cases:</strong></p>
+                    <p>Real-time analytics, log aggregation, IoT data ingestion</p>
+                </div>
+                <div class="card">
+                    <h4>DynamoDB Streams</h4>
+                    <p><strong>Events:</strong></p>
+                    <p>• INSERT (new item)</p>
+                    <p>• MODIFY (item updated)</p>
+                    <p>• REMOVE (item deleted)</p>
+                    <p><strong>Use Cases:</strong></p>
+                    <p>Data replication, materialized views, audit trails, business triggers</p>
+                </div>
+            </div>
+
+            <h2>Polling-Based Event Sources</h2>
+            <ul>
+                <li><strong>SQS:</strong> Lambda polls queue for messages</li>
+                <li><strong>Kinesis:</strong> Lambda polls stream for records</li>
+                <li><strong>DynamoDB Streams:</strong> Lambda polls for table changes</li>
+                <li><strong>MSK (Kafka):</strong> Lambda polls Kafka messages</li>
+            </ul>
+        </div>
+
+        <!-- Slide 14: Design Pattern - Event Notification -->
+        <div class="slide">
+            <h1>Design Pattern: Event Notification</h1>
+            <div class="quote">
+                Simple notification that something happened. Event contains minimal information; consumers fetch details if needed.
+            </div>
+
+            <h2>Example Event</h2>
+            <div class="code-block">
+{
+  "eventType": "UserRegistered",
+  "userId": "user_123",
+  "timestamp": "2025-10-20T19:30:00Z"
+}
+            </div>
+
+            <h2>Flow</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">User Registration</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Publish Event<br/>(minimal data)</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Email Service</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Fetch User Details</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Send Email</div>
+                </div>
+            </div>
+
+            <h2>When to Use</h2>
+            <ul>
+                <li>When payload can be large</li>
+                <li>When consumers need different data</li>
+                <li>To minimize data transfer</li>
+                <li>For loose coupling</li>
+            </ul>
+        </div>
+
+        <!-- Slide 15: Design Pattern - Event-Carried State Transfer -->
+        <div class="slide">
+            <h1>Design Pattern: Event-Carried State Transfer</h1>
+            <div class="quote">
+                Event contains all relevant data. Self-sufficient events where consumers don't need additional queries.
+            </div>
+
+            <h2>Example Event</h2>
+            <div class="code-block">
+{
+  "eventType": "UserRegistered",
+  "timestamp": "2025-10-20T19:30:00Z",
+  "user": {
+    "id": "user_123",
+    "name": "John Silva",
+    "email": "john@example.com",
+    "phoneNumber": "+551234567890",
+    "registrationDate": "2025-10-20",
+    "preferences": {
+      "newsletter": true,
+      "language": "en-US"
+    }
+  }
+}
+            </div>
+
+            <h2>When to Use</h2>
+            <ul>
+                <li>When multiple consumers need the same data</li>
+                <li>To reduce latency (avoid extra queries)</li>
+                <li>When data source may be unavailable</li>
+                <li>For better consumer autonomy</li>
+            </ul>
+        </div>
+
+        <!-- Slide 16: Design Pattern - Event Sourcing -->
+        <div class="slide">
+            <h1>Design Pattern: Event Sourcing</h1>
+            <div class="quote">
+                Application state is derived from a sequence of events. Events are the source of truth.
+            </div>
+
+            <h2>Principles</h2>
+            <ul>
+                <li>Events are the source of truth</li>
+                <li>Current state is a projection of events</li>
+                <li>Complete audit trail built-in</li>
+                <li>Time-travel debugging enabled</li>
+            </ul>
+
+            <h2>Bank Account Example</h2>
+            <div class="code-block">
+// Events
+const events = [
+  { type: 'AccountCreated', accountId: '123', balance: 0 },
+  { type: 'MoneyDeposited', amount: 1000, timestamp: '2025-01-01' },
+  { type: 'MoneyWithdrawn', amount: 200, timestamp: '2025-01-15' },
+  { type: 'MoneyDeposited', amount: 500, timestamp: '2025-02-01' }
+];
+
+// Rebuild current state
+function getAccountState(events) {
+  return events.reduce((state, event) => {
+    switch(event.type) {
+      case 'MoneyDeposited':
+        return { ...state, balance: state.balance + event.amount };
+      case 'MoneyWithdrawn':
+        return { ...state, balance: state.balance - event.amount };
+      default: return state;
+    }
+  }, { balance: 0 });
+}
+// Current state: { balance: 1300 }
+            </div>
+        </div>
+
+        <!-- Slide 17: Design Pattern - CQRS -->
+        <div class="slide">
+            <h1>Design Pattern: CQRS</h1>
+            <div class="quote">
+                Command Query Responsibility Segregation: Separate reads (queries) from writes (commands).
+            </div>
+
+            <h2>Architecture</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">Commands<br/>(Writes)</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item">Write Model</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item" style="background: var(--gradient-accent);">Event Store</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">Read Model(s)</div>
+                    <span class="arrow">↑</span>
+                    <div class="flow-item">Queries<br/>(Reads)</div>
+                </div>
+            </div>
+
+            <h2>Benefits</h2>
+            <ul>
+                <li>Independent optimization of reads and writes</li>
+                <li>Multiple data representations</li>
+                <li>Asymmetric scalability</li>
+                <li>Specialized query models</li>
+            </ul>
+
+            <h2>Example</h2>
+            <div class="emphasis">
+                Write: CreateOrder → OrderAggregate → OrderCreated event<br/>
+                Read: OrdersList, OrdersByCustomer, OrderAnalytics (different projections)
+            </div>
+        </div>
+
+        <!-- Slide 18: Design Pattern - Saga -->
+        <div class="slide">
+            <h1>Design Pattern: Saga</h1>
+            <div class="quote">
+                Distributed transactions as a sequence of local transactions coordinated by events.
+            </div>
+
+            <h2>Two Types</h2>
+            <div class="comparison">
+                <div class="comparison-item after">
+                    <h3>Choreography</h3>
+                    <p>Decentralized coordination</p>
+                    <div class="code-block" style="font-size: 0.8em;">
+OrderService: OrderCreated →
+PaymentService: PaymentProcessed →
+InventoryService: InventoryReserved →
+ShippingService: ShippingScheduled →
+NotificationService: CustomerNotified
+                    </div>
+                </div>
+                <div class="comparison-item" style="background: #fff3e0; border-color: #ff9800;">
+                    <h3>Orchestration</h3>
+                    <p>Centralized coordinator</p>
+                    <div class="code-block" style="font-size: 0.8em;">
+Saga Orchestrator
+  ↓
+Order → Payment → Inventory → Shipping
+  ↓       ↓         ↓           ↓
+(coordinates each step)
+                    </div>
+                </div>
+            </div>
+
+            <h2>Compensating Transactions</h2>
+            <p>If something fails, undo operations already performed:</p>
+            <div class="emphasis">
+                Order OK → Payment OK → Inventory FAIL<br/>
+                ↓<br/>
+                Refund Payment → Cancel Order
+            </div>
+        </div>
+
+        <!-- Slide 19: AWS Event-Driven Architecture -->
+        <div class="slide">
+            <h1>AWS Event-Driven Reference Architecture</h1>
+            <div class="diagram">
+                <h3>Layered Architecture</h3>
+                <div style="background: #fff; padding: 30px; border-radius: 8px; text-align: left;">
+                    <p><strong>Layer 1: Event Producers</strong></p>
+                    <p style="margin-left: 20px;">API Gateway | S3 | DynamoDB | IoT Core | Custom Apps</p>
+                    <p style="margin: 20px 0;">↓</p>
+                    <p><strong>Layer 2: Event Routing</strong></p>
+                    <p style="margin-left: 20px;">EventBridge | SNS | SQS | Kinesis</p>
+                    <p style="margin: 20px 0;">↓</p>
+                    <p><strong>Layer 3: Event Consumers</strong></p>
+                    <p style="margin-left: 20px;">Lambda | Step Functions | ECS | Fargate | EC2</p>
+                </div>
+            </div>
+
+            <h2>Complete E-commerce Order Flow</h2>
+            <div class="code-block" style="font-size: 0.85em;">
+1. Client places order
+2. API Gateway → Lambda (OrderService)
+3. Save order in DynamoDB
+4. Publish "OrderPlaced" to EventBridge
+   ↓  ↓  ↓  ↓
+   │  │  │  └→ Lambda: Send confirmation email
+   │  │  └──→ Lambda: Update inventory
+   │  └────→ Lambda: Process payment
+   └──────→ Lambda: Record analytics
+            </div>
+        </div>
+
+        <!-- Slide 20: EventBridge Example -->
+        <div class="slide">
+            <h1>AWS EventBridge in Action</h1>
+            <h2>Publishing Events</h2>
+            <div class="code-block">
+const AWS = require('aws-sdk');
+const eventbridge = new AWS.EventBridge();
+
+async function createOrder(orderData) {
+  // Save order to DynamoDB
+  await saveOrderToDynamoDB(orderData);
+  
+  // Publish event
+  await eventbridge.putEvents({
+    Entries: [{
+      Source: 'com.ecommerce.orders',
+      DetailType: 'OrderPlaced',
+      Detail: JSON.stringify({
+        orderId: orderData.orderId,
+        customerId: orderData.customerId,
+        items: orderData.items,
+        totalAmount: orderData.totalAmount,
+        timestamp: new Date().toISOString()
+      }),
+      EventBusName: 'default'
+    }]
+  }).promise();
+}
+            </div>
+        </div>
+
+        <!-- Slide 21: EventBridge Rules -->
+        <div class="slide">
+            <h1>EventBridge Rules & Filtering</h1>
+            <h2>Rule 1: All Orders</h2>
+            <div class="code-block">
+{
+  "Source": ["com.ecommerce.orders"],
+  "DetailType": ["OrderPlaced"]
+}
+→ Target: Lambda (SendEmailFunction)
+            </div>
+
+            <h2>Rule 2: High-Value Orders Only</h2>
+            <div class="code-block">
+{
+  "Source": ["com.ecommerce.orders"],
+  "DetailType": ["OrderPlaced"],
+  "Detail": {
+    "totalAmount": [{"numeric": [">", 1000]}]
+  }
+}
+→ Target: Lambda (FraudCheckFunction)
+            </div>
+
+            <div class="emphasis">
+                EventBridge can filter events before invoking targets, reducing costs and improving efficiency
+            </div>
+        </div>
+
+        <!-- Slide 22: Error Handling & Retry -->
+        <div class="slide">
+            <h1>Error Handling & Retry Strategies</h1>
+            <h2>Retry Configuration</h2>
+            <div class="code-block">
+# serverless.yml
+functions:
+  processPayment:
+    handler: payment.handler
+    events:
+      - eventBridge:
+          pattern:
+            source:
+              - com.ecommerce.orders
+            detail-type:
+              - OrderPlaced
+          onError: arn:aws:sqs:us-east-1:123:PaymentDLQ
+          maximumRetryAttempts: 2
+          maximumEventAge: 3600
+            </div>
+
+            <h2>Dead Letter Queue Handling</h2>
+            <ul>
+                <li>Failed events after max retries go to DLQ</li>
+                <li>DLQ processor can alert team and store for manual reprocessing</li>
+                <li>Prevents event loss</li>
+                <li>Enables investigation of failures</li>
+            </ul>
+
+            <div class="emphasis">
+                Always configure DLQs for critical event processing functions
+            </div>
+        </div>
+
+        <!-- Slide 23: Use Case - Multi-Channel Notifications -->
+        <div class="slide">
+            <h1>Use Case: Multi-Channel Notifications</h1>
+            <h2>Requirement</h2>
+            <p>Send notifications via email, SMS, and push when important events occur.</p>
+
+            <h2>Architecture</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">EventBridge<br/>Custom Bus</div>
+                </div>
+                <div style="display: flex; justify-content: center; gap: 30px; margin-top: 30px; flex-wrap: wrap;">
+                    <div class="flow-item" style="min-width: 200px;">Rule 1: UserRegistered<br/>→ Email</div>
+                    <div class="flow-item" style="min-width: 200px;">Rule 2: OrderShipped<br/>→ SMS</div>
+                    <div class="flow-item" style="min-width: 200px;">Rule 3: PaymentFailed<br/>→ Push</div>
+                </div>
+            </div>
+
+            <h2>Benefits</h2>
+            <ul>
+                <li>Easy to add new notification channels</li>
+                <li>Parallel processing of notifications</li>
+                <li>Failure isolation per channel</li>
+                <li>Independent scaling</li>
+            </ul>
+        </div>
+
+        <!-- Slide 24: Use Case - Image Processing Pipeline -->
+        <div class="slide">
+            <h1>Use Case: Image Processing Pipeline</h1>
+            <h2>Requirement</h2>
+            <p>Upload image → Resize → Create thumbnails → OCR → Content moderation</p>
+
+            <h2>Architecture</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">S3 Upload<br/>(original/)</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item">Lambda: Validate</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item" style="background: var(--gradient-accent);">SNS Topic:<br/>"ImageProcessing"</div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 30px;">
+                    <div class="flow-item">Lambda: Resize<br/>→ S3 (resized/)</div>
+                    <div class="flow-item">Lambda: Thumbnails<br/>→ S3 (thumbnails/)</div>
+                    <div class="flow-item">Lambda: OCR<br/>→ DynamoDB</div>
+                    <div class="flow-item">Lambda: Moderate<br/>→ S3 (moderated/)</div>
+                </div>
+                <p style="margin-top: 20px; text-align: center; font-weight: bold;">⚡ All process in parallel</p>
+            </div>
+        </div>
+
+        <!-- Slide 25: Use Case - Real-Time Analytics -->
+        <div class="slide">
+            <h1>Use Case: Real-Time Analytics Dashboard</h1>
+            <h2>Requirement</h2>
+            <p>Dashboard updated in real-time with sales metrics.</p>
+
+            <h2>Architecture</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">API Gateway<br/>(sales data)</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item">Kinesis<br/>Data Stream</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item">Lambda:<br/>Aggregate Metrics</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item">DynamoDB<br/>(metrics table)</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item">DynamoDB<br/>Streams</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item">Lambda:<br/>Push Updates</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item">WebSocket API</div>
+                    <span class="arrow">↓</span>
+                    <div class="flow-item" style="background: var(--gradient-accent);">Dashboard<br/>(live updates)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 26: Best Practices - Event Design -->
+        <div class="slide">
+            <h1>Best Practices: Event Design</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>1. Events Must Be Immutable</h4>
+                    <p>❌ Wrong: Event as command</p>
+                    <p>{"action": "updateUser"}</p>
+                    <p>✅ Correct: Event as fact</p>
+                    <p>{"eventType": "UserUpdated"}</p>
+                </div>
+                <div class="card">
+                    <h4>2. Use Event Versioning</h4>
+                    <div class="code-block" style="font-size: 0.8em;">
+{
+  "eventType": "OrderPlaced",
+  "eventVersion": "2.0",
+  "data": { ... }
+}
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>3. Include Correlation IDs</h4>
+                    <div class="code-block" style="font-size: 0.8em;">
+{
+  "correlationId": "req_abc123",
+  "causationId": "evt_xyz789",
+  "eventId": "evt_new456"
+}
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>4. Use ISO 8601 Timestamps</h4>
+                    <div class="code-block" style="font-size: 0.8em;">
+{
+  "timestamp": "2025-10-20T19:30:00.000Z"
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 27: Best Practices - Idempotency -->
+        <div class="slide">
+            <h1>Best Practices: Idempotency</h1>
+            <div class="quote">
+                Problem: Events can be processed multiple times. Solution: Implement idempotency.
+            </div>
+
+            <h2>Implementation Example</h2>
+            <div class="code-block">
+async function processEvent(event) {
+  const eventId = event.eventId;
+  
+  // Check if already processed
+  try {
+    await dynamodb.put({
+      TableName: 'ProcessedEvents',
+      Item: {
+        eventId: eventId,
+        processedAt: Date.now()
+      },
+      ConditionExpression: 'attribute_not_exists(eventId)'
+    }).promise();
+    
+    // Process event
+    await doActualWork(event);
+    
+  } catch (error) {
+    if (error.code === 'ConditionalCheckFailedException') {
+      console.log('Event already processed, skipping');
+      return;
+    }
+    throw error;
+  }
+}
+            </div>
+        </div>
+
+        <!-- Slide 28: Best Practices - Observability -->
+        <div class="slide">
+            <h1>Best Practices: Observability</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>1. Structured Logging</h4>
+                    <div class="code-block" style="font-size: 0.75em;">
+console.log(JSON.stringify({
+  level: 'info',
+  eventType: event.eventType,
+  eventId: event.eventId,
+  correlationId: event.correlationId,
+  processingTime: endTime - startTime,
+  result: 'success'
+}));
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>2. X-Ray Tracing</h4>
+                    <div class="code-block" style="font-size: 0.75em;">
+const AWSXRay = require('aws-xray-sdk-core');
+const AWS = AWSXRay.captureAWS(require('aws-sdk'));
+
+// Automatically traces AWS calls
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>3. CloudWatch Metrics</h4>
+                    <div class="code-block" style="font-size: 0.75em;">
+await cloudwatch.putMetricData({
+  Namespace: 'ECommerce/Orders',
+  MetricData: [{
+    MetricName: 'OrdersProcessed',
+    Value: 1,
+    Unit: 'Count',
+    Timestamp: new Date()
+  }]
+}).promise();
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 29: Challenges - Eventual Consistency -->
+        <div class="slide">
+            <h1>Challenge: Eventual Consistency</h1>
+            <div class="quote">
+                Problem: Data can be temporarily inconsistent between services.
+            </div>
+
+            <h2>Solution Strategies</h2>
+            <ul>
+                <li><strong>Accept as characteristic:</strong> Embrace eventual consistency</li>
+                <li><strong>UI reflects intermediate states:</strong> Show "Processing..." status</li>
+                <li><strong>Read-your-writes consistency:</strong> When critical, ensure immediate consistency</li>
+                <li><strong>Compensating transactions:</strong> Rollback mechanism for failures</li>
+            </ul>
+
+            <h2>Example</h2>
+            <div class="diagram">
+                <div class="flow">
+                    <div class="flow-item">OrderService<br/>creates order<br/>(PENDING)</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">PaymentService<br/>processes<br/>(3 sec later)</div>
+                    <span class="arrow">→</span>
+                    <div class="flow-item">OrderService<br/>updates<br/>(CONFIRMED)</div>
+                </div>
+                <p style="margin-top: 20px;">User sees "Processing..." for a few seconds</p>
+            </div>
+        </div>
+
+        <!-- Slide 30: Challenges - Event Ordering -->
+        <div class="slide">
+            <h1>Challenge: Event Ordering</h1>
+            <div class="quote">
+                Problem: Events can arrive out of order.
+            </div>
+
+            <h2>Solutions</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>1. FIFO Queues (SQS/SNS)</h4>
+                    <p>Guarantees strict ordering</p>
+                    <div class="code-block" style="font-size: 0.8em;">
+QueueFIFO:
+  Type: AWS::SQS::Queue
+  Properties:
+    FifoQueue: true
+    ContentBasedDeduplication: true
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>2. Sequence Numbers</h4>
+                    <div class="code-block" style="font-size: 0.8em;">
+{
+  "eventId": "evt_123",
+  "sequenceNumber": 42,
+  "previousEventId": "evt_122"
+}
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>3. Reordering Buffer</h4>
+                    <p>• Buffer events for a time window</p>
+                    <p>• Sort by timestamp</p>
+                    <p>• Process in correct order</p>
+                    <p>• Trade latency for ordering</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 31: Challenges - Debugging -->
+        <div class="slide">
+            <h1>Challenge: Distributed Debugging</h1>
+            <div class="quote">
+                Problem: Difficult to trace flow through multiple services.
+            </div>
+
+            <h2>Solutions</h2>
+            <div class="grid">
+                <div class="card">
+                    <h4>1. Correlation IDs</h4>
+                    <p>Propagate across all events</p>
+                    <div class="code-block" style="font-size: 0.75em;">
+const correlationId = 
+  event.correlationId || uuidv4();
+
+await publishEvent({
+  ...eventData,
+  correlationId: correlationId
+});
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>2. Distributed Tracing (X-Ray)</h4>
+                    <p>Visualize request flow</p>
+                    <div class="code-block" style="font-size: 0.75em;">
+const segment = AWSXRay.getSegment();
+const subsegment = 
+  segment.addNewSubsegment('ProcessOrder');
+subsegment.addAnnotation('orderId', orderId);
+subsegment.close();
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>3. Centralized Logging</h4>
+                    <p>Structured logs with correlation IDs</p>
+                    <div class="code-block" style="font-size: 0.75em;">
+logger.info({
+  correlationId,
+  eventType: 'OrderProcessed',
+  orderId,
+  duration: processingTime
+});
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 32: Testing Event-Driven Systems -->
+        <div class="slide">
+            <h1>Testing Event-Driven Systems</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>1. Unit Tests</h4>
+                    <p>Test functions in isolation</p>
+                    <div class="code-block" style="font-size: 0.7em;">
+test('should process order event', async () => {
+  const event = createMockOrderEvent();
+  const result = await handler(event);
+  
+  expect(result.statusCode).toBe(200);
+  expect(mockDynamoDB.put)
+    .toHaveBeenCalledWith(
+      expect.objectContaining({
+        TableName: 'Orders'
+      })
+    );
+});
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>2. Integration Tests</h4>
+                    <p>Test with LocalStack</p>
+                    <div class="code-block" style="font-size: 0.7em;">
+// docker-compose.yml
+services:
+  localstack:
+    image: localstack/localstack
+    environment:
+      - SERVICES=s3,dynamodb,sqs,sns
+
+test('full event flow', async () => {
+  await s3.upload({...}).promise();
+  await waitForEventProcessing();
+  const result = 
+    await dynamodb.get({...}).promise();
+  expect(result.Item).toBeDefined();
+});
+                    </div>
+                </div>
+                <div class="card">
+                    <h4>3. Contract Testing</h4>
+                    <p>Verify event schemas</p>
+                    <div class="code-block" style="font-size: 0.7em;">
+const schema = {
+  type: 'object',
+  required: ['eventType', 'orderId'],
+  properties: {
+    eventType: { type: 'string' },
+    orderId: { type: 'string' }
+  }
+};
+
+test('event matches schema', () => {
+  const event = createOrderEvent();
+  const valid = ajv.validate(schema, event);
+  expect(valid).toBe(true);
+});
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 33: Key Takeaways -->
+        <div class="slide">
+            <h1>Key Takeaways</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>🎯 Fundamental Principles</h4>
+                    <p>• Events are immutable facts of the past</p>
+                    <p>• Temporal and spatial decoupling</p>
+                    <p>• Asynchronous parallel processing</p>
+                    <p>• Natural scalability and resilience</p>
+                </div>
+                <div class="card">
+                    <h4>🛠 Essential Components</h4>
+                    <p>• Producers publish events</p>
+                    <p>• Event brokers route events</p>
+                    <p>• Consumers react to events</p>
+                    <p>• Dead Letter Queues capture failures</p>
+                </div>
+                <div class="card">
+                    <h4>📐 Important Patterns</h4>
+                    <p>• Event Notification vs Event-Carried State</p>
+                    <p>• Event Sourcing for audit trails</p>
+                    <p>• CQRS for read/write separation</p>
+                    <p>• Saga for distributed transactions</p>
+                </div>
+                <div class="card">
+                    <h4>☁️ AWS Event-Driven</h4>
+                    <p>• EventBridge for service integration</p>
+                    <p>• SNS/SQS for robust messaging</p>
+                    <p>• Kinesis for data streaming</p>
+                    <p>• Lambda as event processor</p>
+                </div>
+            </div>
+
+            <h2>Essential Best Practices</h2>
+            <ul>
+                <li>Always implement idempotency</li>
+                <li>Use correlation IDs for traceability</li>
+                <li>Structured logging and observability</li>
+                <li>Error handling with retry and DLQ</li>
+                <li>Testing at multiple levels</li>
+            </ul>
+        </div>
+
+        <!-- Slide 34: Next Steps -->
+        <div class="slide">
+            <h1>Next Steps for Your Event-Driven Journey</h1>
+            <div class="grid">
+                <div class="card">
+                    <h4>Step 1: Master the Fundamentals</h4>
+                    <p>• Deeply understand the event-driven model</p>
+                    <p>• Study how events trigger functions</p>
+                    <p>• Learn async vs sync patterns</p>
+                    <p>• Understand event sources</p>
+                </div>
+                <div class="card">
+                    <h4>Step 2: Practice with AWS</h4>
+                    <p>• Build simple Lambda functions</p>
+                    <p>• Integrate with S3, DynamoDB, API Gateway</p>
+                    <p>• Experiment with EventBridge</p>
+                    <p>• Set up SNS and SQS</p>
+                </div>
+                <div class="card">
+                    <h4>Step 3: Apply Architecture Patterns</h4>
+                    <p>• Implement microservices</p>
+                    <p>• Build data pipelines</p>
+                    <p>• Create automation workflows</p>
+                    <p>• Practice with real scenarios</p>
+                </div>
+                <div class="card">
+                    <h4>Step 4: Master Observability</h4>
+                    <p>• CloudWatch logs and metrics</p>
+                    <p>• X-Ray distributed tracing</p>
+                    <p>• Structured logging</p>
+                    <p>• Monitoring and alerting</p>
+                </div>
+            </div>
+
+            <div class="emphasis">
+                Start small, think big. Build incrementally and learn from each implementation.
+            </div>
+        </div>
+
+        <!-- Slide 35: Conclusion -->
+        <div class="slide">
+            <div class="title-slide">
+                <h1>Embrace Event-Driven Architecture</h1>
+                <div class="quote">
+                    "The future of software development is automated, integrated, and event-driven"
+                </div>
+                <div class="grid" style="margin-top: 50px;">
+                    <div class="card">
+                        <h4>🚀 Scalability</h4>
+                        <p>From zero to millions automatically</p>
+                    </div>
+                    <div class="card">
+                        <h4>⚡ Responsiveness</h4>
+                        <p>React instantly to events</p>
+                    </div>
+                    <div class="card">
+                        <h4>🔧 Flexibility</h4>
+                        <p>Easily add or modify consumers</p>
+                    </div>
+                    <div class="card">
+                        <h4>💰 Cost-Efficient</h4>
+                        <p>Pay only for actual processing</p>
+                    </div>
+                </div>
+                <div class="emphasis" style="margin-top: 40px; background: transparent; border: none;">
+                    <p style="font-size: 1.8em; color: var(--primary);">Build Less, React More, Scale Infinitely.</p>
+                </div>
+                <p class="author" style="margin-top: 40px;">Ready to go event-driven? Start your journey today! 🎉</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="prevBtn" onclick="changeSlide(-1)">
+            <span>←</span> Previous
+        </button>
+        <button class="btn" id="homeBtn" onclick="goToSlide(0)">
+            <span>⌂</span> Home
+        </button>
+        <button class="btn" id="nextBtn" onclick="changeSlide(1)">
+            Next <span>→</span>
+        </button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            
+            document.getElementById('slideCounter').textContent = `${currentSlide + 1} / ${totalSlides}`;
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+            
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            localStorage.setItem('eventDrivenSlide', currentSlide);
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function goToSlide(n) {
+            showSlide(n);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && currentSlide > 0) changeSlide(-1);
+            if (e.key === 'ArrowRight' && currentSlide < totalSlides - 1) changeSlide(1);
+            if (e.key === 'Home') goToSlide(0);
+            if (e.key === 'End') goToSlide(totalSlides - 1);
+            if (e.key === 'f' || e.key === 'F') toggleFullScreen();
+            if (e.key === 'Escape') exitFullScreen();
+            
+            const hint = document.getElementById('keyboardHint');
+            hint.classList.add('show');
+            setTimeout(() => hint.classList.remove('show'), 3000);
+        });
+
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchEndX < touchStartX - swipeThreshold && currentSlide < totalSlides - 1) {
+                changeSlide(1);
+            }
+            if (touchEndX > touchStartX + swipeThreshold && currentSlide > 0) {
+                changeSlide(-1);
+            }
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function exitFullScreen() {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        }
+
+        const savedSlide = localStorage.getItem('eventDrivenSlide');
+        if (savedSlide !== null) {
+            showSlide(parseInt(savedSlide));
+        } else {
+            showSlide(0);
+        }
+
+        setTimeout(() => {
+            const hint = document.getElementById('keyboardHint');
+            hint.classList.add('show');
+            setTimeout(() => hint.classList.remove('show'), 5000);
+        }, 1000);
+    </script>
+</body>
+</html>
